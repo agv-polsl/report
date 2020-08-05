@@ -1,0 +1,83 @@
+% Paper, encoding and fonts settings
+\documentclass[a4paper]{report}
+\usepackage{geometry}
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{polski}
+\usepackage{indentfirst}
+\usepackage[polish]{babel}
+
+% Graphics
+\usepackage{graphicx}
+\graphicspath{ {./graphics/} }
+
+% Math, physics and numbers
+\usepackage{amsmath}
+\usepackage{siunitx}
+% Proper decimal separation
+\usepackage{icomma}
+
+% Extra features and enhancements
+\usepackage{cite}
+% Tables
+\usepackage{booktabs}
+\usepackage{multirow}
+% Listings
+\usepackage{minted}
+% Make sure that hyperref is last loaded package
+\usepackage[hidelinks]{hyperref}
+
+% Renew some commands to ensure Polish names
+\renewcommand\listoflistingscaption{Spis listingów}
+% There is no Polish locale for units, French is the closest one
+\sisetup{locale = FR}
+% Define centered column type with fixed width
+\newcolumntype{C}[1]{>{\centering\arraybackslash}p{#1}}
+
+\author{Wojciech Ptasiński \and Maciej Ziaja}
+\title{Raport z~projektu indywidualnej organizacji studiów}
+
+\begin{document}
+
+\maketitle
+
+% Introductory pages
+\begin{abstract}
+Abstract
+\end{abstract}
+
+\tableofcontents
+
+% Sections
+\section{Wstęp}
+\input{sections/introduction}
+
+\section{Środowisko prototypowania robotów ROS}
+\input{sections/ros}
+
+\section{Filtr Kalmana i system AHRS}
+\input{sections/ahrs}
+
+\section{Odometria robota}
+\input{sections/odometry}
+
+\section{System wizyjny}
+\input{sections/vision}
+
+\section{Analiza biznesowa}
+\input{sections/business}
+
+\section{Podsumowanie}
+\input{sections/summary}
+
+% Lists of objects
+\listoffigures
+\listoftables
+\listoflistings
+
+% Bibliography
+\nocite{*}
+\bibliographystyle{plplain}
+\bibliography{references}
+
+\end{document}
