@@ -1,0 +1,405 @@
+System AHRS (ang. \textit{attitude and heading reference system}) pozwala na
+wyznaczenie orientacji obiektu w~przestrzeni.
+Systemu tego typu znajdują szerokie zastosowanie w~pojazdach autonomicznych.
+
+System AHRS można podzielić na dwie główne części: system czujników oraz system
+predykcji orientacji w~przestrzeni.
+Fragment systemu odpowiedzialny za działanie czujników stawia wyzwania związane
+z~obsługą sprzętu oraz jego kalibracją.
+Algorytm predykcji pozwala na fuzję danych z~zespołu czujników w~celu
+określenia orientacji obiektu w~przestrzeni.
+
+Wynikiem działania systemu AHRS jest wektor trzech wartości reprezentujących
+obrót obiektu wokół osi trójwymiarowego układu współrzędnych.
+Kąty obrotu noszą nazwę \textit{kątów Eulera}, ich ideowym odpowiednikiem
+w~terminologii lotniczej są kąty \textit{roll, pitch, yaw}.
+
+\subsection{Czujniki systemu AHRS i implementacja sprzętowa}
+W~celu określenia orientacji obiektu w~przestrzeni konieczny jest zestaw
+czujników.
+Do wyznaczenia pełnej orientacji w~przestrzeni trójwymiarowej stosuje się
+zazwyczaj zestaw: akcelerometru, żyroskopu oraz magnetometru.
+Akcelerometr i~żyroskop tworzą razem zestaw nazywany IMU (ang \textit{inertial
+measurement unit}).
+System IMU pozwala na wyznaczenie kątów odchylenia obiektu od pionu
+(\textit{roll} oraz \textit{pitch}), co w~wielu zastosowaniach jest
+wystarczające.
+Aby uzyskać pełne współrzędne orientacji obiektu w~przestrzeni należy użyć
+także magnetometru, który pozwala określić kąt obrotu wokół osi pionowej
+(\textit{yaw}).
+
+W~projekcie użyto układu \textit{MinIMU-9 v5} firmy \textit{Pololu}
+o~dziewięciu stopniach swobody (trzy stopnie swobody na każdy z~czujników).
+\textit{MinIMU} zawiera zestaw: układ IMU \textit{LSM6DS33} oraz magnetometr
+\textit{LIS3MDL}.
+Komunikacja z czujnikami odbywa się poprzez magistralę \textit{I2C}, przy czym
+każdy z trzech czujników ma osobny adres i~wymaga oddzielnej obsługi
+komunikacji.
+Czujniki wchodzące w skład systemu AHRS wymagają kalibracji, co jest
+szczególnie ważne przypadku magnetometru.
+
+\subsubsection{Żyroskop}
+Żyroskop to przyrząd pozwalający określić prędkość obiektu kątową w~trzech
+osiach.
+W~spoczynku żyroskop powinien dawać zerowe odczyty ze wszystkich osi.
+Jest to podstawowy czujnik pozwalający określić orientację obiektu
+w~przestrzeni.
+Wyznaczenie kątów obrotu wymaga jedynie całkowania odczytu z~żyroskopu
+(ponieważ prędkość kątowa to pochodna kąta obrotu).
+Niestety sam żyroskop nie jest wystarczający aby precyzyjnie orientować obiekt
+w~przestrzeni, ze względu na zjawisko dryftu (ang. \textit{gyroscope drift}).
+Żyroskop jest mało podatny na szumy pomiarowe o~małej częstotliwości, natomiast
+jest wrażliwy na pojawianie się stałych, ale niewielkich błędów w~odczytach.
+Ze względu na konieczność całkowania danych z~żyroskopu te małe błędy są
+kumulowane, w~wyniku czego wraz z~upływem czasu, orientacja na podstawie
+działania żyroskopu staje się coraz mniej wiarygodna.
+Dlatego w celu precyzyjnego ustalania orientacji w~przestrzeni konieczne jest
+użycie żyroskopu w~parze z akcelerometrem oraz zastosowanie algorytmu fuzji
+danych.
+
+\subsubsection{Akcelerometr}
+Akcelerometr to czujnik pozwalający mierzyć przyspieszenie kątowe obiektu.
+W stanie spoczynku osie poziomie akcelerometru powinny wskazywać zerowe
+odczyty, natomiast oś pionowa powinna wskazywać wartość przyspieszenia
+ziemskiego.
+
+Akcelerometr jest wolny od zjawiska dryftu, natomiast jest wrażliwy na szumy
+pomiarowe o~dużych częstotliwościach.
+Przeciwna natura niedokładności akcelerometru oraz żyroskopu sprawia, że
+najlepiej pracują one w parze, z~użyciem algorytmu fuzji danych.
+
+W~czujnikach IMU często dokonuje się kalibracji błędu zera (addytywnego).
+Należy wykonać to w trakcie spoczynku systemu na płaskiej powierzchni.
+Oś pionowa akcelerometru nie powinna być kalibrowana.
+
+\subsubsection{Magnetometr}
+Magnetometr mierzy indukcję pola magnetycznego w~trzech kierunkach.
+Ponieważ między biegunami Ziemi przebiegają linie pola magnetycznego, to
+magnetometr może być użyty do wyznaczenia orientacji obiektu w przestrzeni
+(jako kompas).
+Oś magnetometru leżąca w kierunku północ-południe wskazuje wartości maksymalne
+indukcji, osie prostopadłe wskazują wartości minimalne.
+
+Kluczowym zagadnieniem jest kalibracja magnetometru, który jest obciążony
+zarówno błędem addytywnym (nazywanym z ang. \textit{hard iron}), jak
+i~multiplikatywnym (nazywanym z ang. \textit{soft iron}).
+Odczyty magnetometru są wrażliwe na zakłócenia powstałe w wyniku działań innych
+części układów robotyki.
+Z~tego powodu kalibracja magnetometru jest koniecznością, magnetometr
+nieskalibrowany jest obciążony błędami uniemożliwiającymi poprawne działanie
+systemu AHRS.
+
+\subsection{Kalibracja czujników}
+W przypadku czujników IMU kalibracja polega na uśrednieniu odczytu $ n $
+wartości w~trakcie spoczynku na równym podłożu.
+Kolejne odczyty należy korygować o~zapisaną wartość średniej.
+
+W przypadku magnetometru w czasie kalibracji należy nim poruszać, tak aby
+każda oś jego pomiaru obróciła się w~przestrzeni o~kąt pełny.
+W~przypadku poprawnie skalibrowanego magnetometru pomiary o~maksymalnych
+wartościach powinny mieć na wykresie kształt okręgu ze środkiem w~początku
+układu współrzędnych.
+W przypadku wystąpienia błędu \textit{hard iron} środek okręgu jest
+przesunięty, natomiast w~wyniku działania błędu \textit{soft iron} następuje
+zniekształcenie okręgu.
+
+Ważne jest aby kalibracji dokonać w~odpowiedniej kolejności, najpierw należy
+wyznaczyć \textit{hard iron}, a~potem \textit{soft iron}.
+Obliczenie błędu multiplikatywnego wymaga, aby błąd addytywny był już
+zniwelowany.
+Błąd \textit{hard iron} jest średnią ze skrajnych wartości $ n $ pomiarów, co
+przedstawiono na wzorze \ref{eq:hard_iron}, gdzie $ \vec{m_n} $ to wektor
+pomiarów z~czujnika.
+\begin{equation}
+	\vec{e_{hard}} = 
+		\frac{max\left(\vec{m_n}\right) + min\left(\vec{m_n}\right)}{2}
+\label{eq:hard_iron}
+\end{equation}
+Błąd \textit{soft iron} należy wyznaczyć według wzorów od
+\ref{eq:hard_iron_beg} do \ref{eq:hard_iron_end}.
+\begin{gather}
+	\vec{r} =
+		\frac{max\left(\vec{m_n}\right) - min\left(\vec{m_n}\right)}{2}
+	\quad
+	\vec{r} = \left[r_x, r_y, r_z\right] \\
+\label{eq:hard_iron_beg}
+	r_a = \frac{r_x + r_y + r_z}{3} \\
+	\vec{e_{soft}} =
+		\left[ \frac{r_a}{r_x}, \frac{r_a}{r_y}, \frac{r_a}{r_z}\right]
+\label{eq:hard_iron_end}
+\end{gather}
+Ostatecznie odczyty magnetometru należy korygować według wzoru
+\begin{equation}
+	\vec{m_{fixed}} = \left(\vec{m} - \vec{e_{hard}}\right) \cdot \vec{e_{soft}}
+\end{equation}
+
+\subsection{Implementacja obsługi czujników w systemie operacyjnym Linux}
+Obsługę czujników zdecydowano się oprzeć na systemie Linux, który jest również
+bazą dla środowiska ROS.
+Jądro systemu Linux udostępnia dostęp do magistrali komunikacji \textit{I2C}
+poprzez wywołania systemowe (ang. \textit{system calls}).
+Urządzenia peryferyjne w~systemach pochodnych systemu \textit{UNIX} są
+reprezentowane przez pliki znakowe.
+W~celu nawiązania połączenia z~czujnikiem należy otworzyć plik urządzenia
+znakowego \textit{I2C} za pomocą wywołania \mintinline{c}{open()}.
+Pliki urządzeń peryferyjnych znajdują się w~katalogu \texttt{/dev/}.
+Połączenie nawiązuje się wywołaniem
+\mintinline{C}{ioctl(device_handle, I2C_SLAVE, i2c_address);}, gdzie
+\mintinline{C}{device_handle} to deskryptor otwartego pliku urządzenia
+znakowego, \mintinline{C}{I2C_SLAVE} to stała określająca tryb działania
+urządzania, a \mintinline{C}{i2c_address} to adres urządzenia podłączonego do
+magistrali \textit{I2C}.
+Wymiana z~urządzeniami odbywa się poprzez zapis i~odczyt danych z pliku
+urządzenia, za pomocą wywołań \mintinline{C}{read()} oraz
+\mintinline{C}{write}.
+Istotne jest aby odczytywać i~zapisywać odpowiednią liczbę bajtów, oraz
+poprawnie skalować odczyty.
+Informacje na temat formatu przesyłanych danych znajdują się w~notach
+katalogowych czujników.
+Istnieją dodatkowe biblioteki ułatwiające pracę z~urządzeniami \textit{I2C}
+(np. \textit{SMBUS}), jednak opisany sposób jest najbardziej uniwersalny.
+Utworzona biblioteka komunikacji z~czujnikami \textit{MinIMU-9 v5} będzie
+działała na każdym urządzeniu z~systemem Linux, którego jądro obsługuje
+komunikację \textit{I2C}.
+
+Program napisano w~języku C\texttt{++} odpowiednio opakowując kod języka C.
+Błędy zgłaszane przez system \textit{errno} obsłużono przez wyjątki.
+Adresy rejestrów i~urządzeń \textit{I2C} zapisano w~silnie typowanych
+wyrażeniach wyliczeniowych, które parametryzują szablony klas urządzeń
+magistrali \textit{I2C}.
+Oprogramowanie obsługi czujników udostępniono w~postaci statycznie łączonej
+biblioteki programistycznej.
+
+\subsection{Filtr Kalmana}
+Filtr Kalma jest algorytmem estymacji stanu modelu dynamicznego.
+Algorytmy tego typu określają wewnętrzny stan obiektu na podstawie pomiarów
+wejścia i~wyjścia tego układu.
+Filtr wykonuje estymacje rekurencyjnie, na podstawie wcześniejszych obliczeń,
+a~szacunki są optymalne, zakładając że błędy pomiarowe mają rozkład
+normalny oraz układ jest liniowy.
+Jeżeli układ dyskretny opisany jest równaniami
+\ref{eq:state_kalman}~i~\ref{eq:meas_kalman}, gdzie:
+\begin{description}
+	\item[$x\left(t\right)$] to wektor stanu w~funkcji czasu,
+	\item[$y\left(t\right)$] to wektor wyjścia układu (pomiaru) w~funkcji czasu,
+	\item[$A$] to macierz systemowa (przejścia),
+	\item[$B$] to macierz wejścia,
+	\item[$H$] to macierz wyjścia (pomiaru),
+	\item[$v\left(t\right), u\left(t\right)$] to wektory szumu, kolejno
+		procesu oraz pomiaru.	
+\end{description}
+\begin{align}
+x\left(t + 1\right) &= Ax\left(t\right) + Bu\left(t\right) + v\left(t\right)
+\label{eq:state_kalman} \\
+y\left(t\right) &= Hx\left(t\right) + w\left(t\right)
+\label{eq:meas_kalman}
+\end{align}
+
+Działanie filtru Kalmana składa się z~dwóch faz: fazy predykcji (\textit{a
+priori}) oraz aktualizacji (\textit{a posteriori}).
+Faza predykcji (ekstrapolacji) polega na wyznaczeniu stanu układu w~nowej
+chwili czasu na podstawie modelu układu oraz wcześniejszego stanu.
+W~czasie predykcji wyznaczana jest również nowa macierz niepewności
+(kowariancji estymacji).
+Predykcja odbywa się według wzorów
+\ref{eq:predict_state}~i~\ref{eq:predict_unc}, gdzie:
+\begin{description}
+	\item[$\hat{x}_a\left(t\right)$] to estymacja \textit{a priori} wektora stanu
+	w~funkcji czasu,
+	\item[$\hat{x}_p\left(t\right)$] to estymacja \textit{a posteriori} wektora
+	stanu w~funkcji czasu,
+	\item[$P_a\left(t\right)$] to macierz kowariancji estymacji stanu \textit{a
+	priori} w~funkcji czasu,
+	\item[$Q$] to macierz kowariancji szumu procesu.
+\end{description}
+\begin{align}
+	\hat{x}_a\left(t\right) &= A\hat{x}_p\left(t-1\right) + Bu\left(t-1\right)
+	\label{eq:predict_state} \\
+	P_a\left(t\right) &= AP_p\left(t-1\right)A^T + Q
+	\label{eq:predict_unc}
+\end{align}
+Kolejnym etapem jest aktualizacja, która odbywa się na podstawie pomiaru
+wyjścia układu.
+Ma ona za zadanie poprawić estymację stanu, uwzględniając różnicę między
+rzeczywistym pomiarem wyjścia, a~jego wartością obliczoną \textit{a priori}
+przy pomocy stanu z~fazy predykcji.
+Kluczowym elementem filtru Kalmana jest \textit{wzmocnienie Kalmana}, które
+reprezentuje balans ufności w~predykcję \textit{a priori} (według modelu) oraz
+w~pomiary wyjścia \textit{a posteriori}.
+W~trakcie fazy aktualizacji, wyznaczane jest także nowe
+\textit{wzmocnienie Kalmana}.
+Intuicyjnie można powiedzieć, że wzmocnienie jest wyznaczane tak, by najlepiej
+balansować pomiędzy przewidywaniem stanu według modelu matematycznego
+(niedoskonałego, a~także nie obejmującego zakłóceń procesu) oraz przewidywaniem
+według pomiaru (obarczonego szumem pomiarowym).
+Faza aktualizacji odbywa się zgodnie ze wzorami od \ref{eq:kalman_update_K} do
+\ref{eq:kalman_update_P}, gdzie:
+\begin{description}
+	\item[$K\left(t\right)$] to \textit{wzmocnienie Kalmana} w~funkcji czasu,
+	\item[$\hat{P}_p\left(t\right)$] to macierz kowariancji estymacji stanu
+	\textit{a posteriori} w~funkcji czasu,
+	\item[$R$] to macierz kowariancji szumu pomiarowego.
+\end{description}
+\begin{gather}
+	K\left(t\right) = P\left(t\right) H^T \cdot
+	\left(HP_a\left(t\right)H^T + R\right)^{-1}
+\label{eq:kalman_update_K} \\
+	\hat{x}_p\left(t\right) = \hat{x}_a\left(t\right) +
+	K\cdot\left(y\left(t\right) - H \hat{x}_a\left(t\right)\right)
+\label{eq:kalman_update_x} \\
+	P_p\left(t\right) = \left(I - K\left(t\right)H\right) \cdot P_a\left(t\right)
+	\label{eq:kalman_update_P}
+\end{gather}
+
+\subsection{Zastosowanie filtru Kalmana w~fuzji danych pochodzących z~czujnika
+            IMU}
+Filtr Kalmana można zastosować, aby oszacować orientację obiektu w~przestrzeni
+na podstawie odczytów z~czujnika IMU.
+Fuzja danych przy pomocy filtru pozwala zniwelować niedoskonałości żyroskopu
+(dryft) oraz akcelerometru (szumy pomiarowe).
+Zazwyczaj dane z~żyroskopu są używane w roli wejścia systemu, na etapie
+predykcji, a~pomiary z~akcelerometru są wykorzystywane podczas fazy
+aktualizacji.
+Czujniki IMU pozwalają jedynie na określenie kątów \textit{roll} oraz
+\textit{pitch}, w~dalszej części raportu zostanie opisany sposób wyznaczenia
+kąta \textit{yaw} na podstawie odczytów magnetometru.
+
+\subsubsection{Dane wejściowe filtru Kalmana}
+Na podstawie danych z~akcelerometru można obliczyć dwa z~kątów opisujących
+orientację obiektu w~przestrzeni (wykorzystując fakt, stałego przyspieszenia
+ziemskiego w~pionowej osi inercyjnego układu odniesienia).
+Kąty \textit{roll} i~\textit{pitch} są wyznaczane według wzorów
+\ref{eq:acc_roll}~oraz \ref{eq:acc_pitch}, gdzie gdzie: $ \phi $ i~$ \theta $
+to kolejno kąty \textit{roll oraz pitch}, a~$ a $~to odczyty akcelerometru.
+\begin{align}
+	\tilde\phi_a &= arctan\left(\frac{a_y}{\sqrt{a_x^2 + a_z^2}}\right)
+	\cdot
+	\frac{180}{\pi}
+	\label{eq:acc_roll} \\
+	\tilde\theta_a &= arctan\left(\frac{a_x}{\sqrt{a_y^2 + a_z^2}}\right)
+	\cdot
+	\frac{180}{\pi}
+	\label{eq:acc_pitch}
+\end{align}
+
+Prędkości kątowe odczytane z~żyroskopu nie mogą być użyte wprost, ze względu
+na powiązanie osi odczytu w~układzie odniesienia.
+Obrót układu wokół jednej z~jego osi może powodować zmianę orientacji obiektu
+w~wielu osiach zewnętrznego układu odniesienia.
+Transformacji prędkości kątowych z~układu żyroskopu do układu inercyjnego
+należy dokonać według wzoru \ref{eq:gyro_tf}, gdzie: $ \phi, \theta, \psi $ to
+kolejno kąty \textit{roll, pitch oraz yaw}, a~$ g $~to odczyty żyroskopu.
+\begin{equation}
+	\begin{bmatrix}
+		\dot{\phi_g} \\
+		\dot{\theta_g} \\
+		\dot{\psi_g}
+	\end{bmatrix}
+	=
+	\begin{bmatrix}
+		1 & sin\phi tan\theta & cos\phi tan\theta \\
+		0 & cos\phi           & -sin\phi \\
+		0 & sin\phi sec\theta & cos\phi sec\theta
+	\end{bmatrix}
+	\cdot
+	\begin{bmatrix}
+		g_x \\
+		g_y \\
+		g_z
+	\end{bmatrix}
+\label{eq:gyro_tf}
+\end{equation}
+
+\subsubsection{Równania filtru Kalmana dla fuzji danych}
+Na podstawie opisu teoretycznego filtru Kalmana oraz przygotowanych danych
+z~czujników można przygotować ostateczną wersję systemu podstawiając konkretne
+macierze systemowe i~wektory z~równań: \ref{eq:state_imu} i~\ref{eq:vec_imu} do
+równań od \ref{eq:state_kalman} do \ref{eq:kalman_update_P}.
+Symbol $ \Delta t $ oznacza okres próbkowania czujników.
+\begin{gather}
+	A = 
+	\begin{bmatrix}
+		1 & -\Delta t & 0 & 0 \\
+		0 & 1         & 0 & 0 \\
+		0 & 0          & 1 & -\Delta t \\
+		0 & 0         & 0 & 1 
+	\end{bmatrix}
+	\quad
+	B = 
+	\begin{bmatrix}
+		\Delta t & 0 \\
+		0        & 0 \\
+		0        & \Delta t \\
+		0        & 0
+	\end{bmatrix}
+	\quad
+	H =
+	\begin{bmatrix}
+		1 & 0 & 0 & 0 \\
+		0 & 0 & 1 & 0
+	\end{bmatrix}
+\label{eq:state_imu} \\
+	\vec{x}\left(t\right) = 
+	\begin{bmatrix}
+		\hat{\phi}\left(t\right) \\
+		b_{\hat{\phi}\left(t\right)} \\
+		\hat{\theta}\left(t\right) \\
+		b_{\hat{\theta}\left(t\right)}
+	\end{bmatrix}
+	\quad
+	\vec{u}\left(t\right) = 
+	\begin{bmatrix}
+		\dot{\phi_{g}}\left(t\right) \\
+		\dot{\theta_{g}}\left(t\right)
+	\end{bmatrix}
+	\quad
+	\vec{y_t}
+	\begin{bmatrix}
+		\tilde{\phi_{a}}\left(t\right) \\
+		\tilde{\theta_{a}}\left(t\right)
+	\end{bmatrix}
+\label{eq:vec_imu}
+\end{gather}
+
+Macierze $ Q $ (kowariancja szumu procesu) oraz $ R $ (kowariancja szumu
+pomiaru) są dobierane przez użytkownika.
+Są to zazwyczaj macierze diagonalne, im większa wartość na ich przekątnej, tym
+większe zakłócenia w~danej części układu.
+Początkowa wartość na przekątnej $ P $ reprezentuje wstępną ufność
+w~dokładność modelu.
+
+\subsection{Algorytm kompasu oraz kompensacja przechylenia}
+
+Zgodnie z~wcześniejszym opisem magnetometru można użyć jako kompasu w~celu
+wyznaczenia kąta \textit{yaw}.
+Jednak w~przypadku przechylenia układu czujników w~pozostałych kątach
+płaszczyzna kompasu (magnetometru) zostanie odchylona od płaszczyzny podłoża,
+co spowoduje zakłamanie odczytów.
+Aby zniwelować ten problem można użyć wyliczonych uprzednio kątów \textit{roll}
+oraz \textit{pitch}.
+Służy do tego formuła \textit{kompensacji przechylenia} (ang. \textit{tilt
+compensation}, którą przedstawia wzory od \ref{eq:tilt_compensation_hx} do
+\ref{eq:tilt_compensation_roll}.
+
+\begin{gather}
+	h_x = m_x cos\hat{\theta} + 
+	      m_y sin\hat{\theta} sin\hat{\phi} +
+          m_z sin\hat{\theta} cos\hat{\phi}
+\label{eq:tilt_compensation_hx} \\
+    h_y = m_y cos\phi - m_z sin\phi
+\label{eq:tilt_compensation_hy} \\
+    \psi = atan2(-h_y, h_x)
+\label{eq:tilt_compensation_roll}
+\end{gather}
+
+\subsection{Implementacja programistyczna systemu AHRS}
+System AHRS zaimplementowano w~języku C\texttt{++} w~postaci biblioteki
+programistycznej.
+Aby umożliwić jak najszersze zastosowanie opracowanego kodu zadbano o~jego
+wysoką przenaszalność.
+Aby, umożliwić działanie programu na urządzaniach wbudowanych \textit{bare
+metal} w~programie unikano polegania na wyjątkach oraz dynamicznej alokacji
+pamięci.
+Większość klas i~funkcji jest parametryzowana przez szablony w~czasie
+kompilacji, co pozwala na generowanie szybkiego kodu (kosztem
+hipotetycznego zwiększenia rozmiaru plików wykonywalnych).
