@@ -14,7 +14,7 @@ obrót obiektu wokół osi trójwymiarowego układu współrzędnych.
 Kąty obrotu noszą nazwę \textit{kątów Eulera}, ich ideowym odpowiednikiem
 w~terminologii lotniczej są kąty \textit{roll, pitch, yaw}.
 
-\subsection{Czujniki systemu AHRS i implementacja sprzętowa}
+\section{Czujniki systemu AHRS i implementacja sprzętowa}
 W~celu określenia orientacji obiektu w~przestrzeni konieczny jest zestaw
 czujników.
 Do wyznaczenia pełnej orientacji w~przestrzeni trójwymiarowej stosuje się
@@ -38,7 +38,7 @@ komunikacji.
 Czujniki wchodzące w skład systemu AHRS wymagają kalibracji, co jest
 szczególnie ważne przypadku magnetometru.
 
-\subsubsection{Żyroskop}
+ \subsection{Żyroskop}
 Żyroskop to przyrząd pozwalający określić prędkość obiektu kątową w~trzech
 osiach.
 W~spoczynku żyroskop powinien dawać zerowe odczyty ze wszystkich osi.
@@ -57,7 +57,7 @@ Dlatego w celu precyzyjnego ustalania orientacji w~przestrzeni konieczne jest
 użycie żyroskopu w~parze z akcelerometrem oraz zastosowanie algorytmu fuzji
 danych.
 
-\subsubsection{Akcelerometr}
+ \subsection{Akcelerometr}
 Akcelerometr to czujnik pozwalający mierzyć przyspieszenie kątowe obiektu.
 W stanie spoczynku osie poziomie akcelerometru powinny wskazywać zerowe
 odczyty, natomiast oś pionowa powinna wskazywać wartość przyspieszenia
@@ -72,7 +72,7 @@ W~czujnikach IMU często dokonuje się kalibracji błędu zera (addytywnego).
 Należy wykonać to w trakcie spoczynku systemu na płaskiej powierzchni.
 Oś pionowa akcelerometru nie powinna być kalibrowana.
 
-\subsubsection{Magnetometr}
+ \subsection{Magnetometr}
 Magnetometr mierzy indukcję pola magnetycznego w~trzech kierunkach.
 Ponieważ między biegunami Ziemi przebiegają linie pola magnetycznego, to
 magnetometr może być użyty do wyznaczenia orientacji obiektu w przestrzeni
@@ -170,7 +170,7 @@ magistrali \textit{I2C}.
 Oprogramowanie obsługi czujników udostępniono w~postaci statycznie łączonej
 biblioteki programistycznej.
 
-\subsection{Filtr Kalmana}
+\section{Filtr Kalmana}
 Filtr Kalma jest algorytmem estymacji stanu modelu dynamicznego.
 Algorytmy tego typu określają wewnętrzny stan obiektu na podstawie pomiarów
 wejścia i~wyjścia tego układu.
@@ -264,7 +264,7 @@ Czujniki IMU pozwalają jedynie na określenie kątów \textit{roll} oraz
 \textit{pitch}, w~dalszej części raportu zostanie opisany sposób wyznaczenia
 kąta \textit{yaw} na podstawie odczytów magnetometru.
 
-\subsubsection{Dane wejściowe filtru Kalmana}
+\subsection{Dane wejściowe filtru Kalmana}
 Na podstawie danych z~akcelerometru można obliczyć dwa z~kątów opisujących
 orientację obiektu w~przestrzeni (wykorzystując fakt, stałego przyspieszenia
 ziemskiego w~pionowej osi inercyjnego układu odniesienia).
@@ -310,7 +310,7 @@ kolejno kąty \textit{roll, pitch oraz yaw}, a~$ g $~to odczyty żyroskopu.
 \label{eq:gyro_tf}
 \end{equation}
 
-\subsubsection{Równania filtru Kalmana dla fuzji danych}
+\subsection{Równania filtru Kalmana dla fuzji danych}
 Na podstawie opisu teoretycznego filtru Kalmana oraz przygotowanych danych
 z~czujników można przygotować ostateczną wersję systemu podstawiając konkretne
 macierze systemowe i~wektory z~równań: \ref{eq:state_imu} i~\ref{eq:vec_imu} do
@@ -369,7 +369,6 @@ Początkowa wartość na przekątnej $ P $ reprezentuje wstępną ufność
 w~dokładność modelu.
 
 \subsection{Algorytm kompasu oraz kompensacja przechylenia}
-
 Zgodnie z~wcześniejszym opisem magnetometru można użyć jako kompasu w~celu
 wyznaczenia kąta \textit{yaw}.
 Jednak w~przypadku przechylenia układu czujników w~pozostałych kątach
@@ -392,8 +391,8 @@ compensation}, którą przedstawia wzory od \ref{eq:tilt_compensation_hx} do
 \label{eq:tilt_compensation_roll}
 \end{gather}
 
-\subsection{Implementacja programistyczna systemu AHRS}
-System AHRS zaimplementowano w~języku C\texttt{++} w~postaci biblioteki
+\section{Implementacja programistyczna systemu AHRS}
+System AHRS zaimplementowano w~języku C++ w~postaci biblioteki
 programistycznej.
 Aby umożliwić jak najszersze zastosowanie opracowanego kodu zadbano o~jego
 wysoką przenaszalność.

@@ -17,11 +17,6 @@
 % Proper decimal separation
 \usepackage{icomma}
 
-% Extra features and enhancements
-\usepackage{cite}
-% Tables
-\usepackage{booktabs}
-\usepackage{multirow}
 % Listings
 \usepackage{minted}
 % Make sure that hyperref is last loaded package
@@ -30,8 +25,6 @@
 \usepackage{caption}
 \usepackage{subcaption}
 
-% Renew some commands to ensure Polish names
-\renewcommand\listoflistingscaption{Spis listingów}
 % There is no Polish locale for units, French is the closest one
 \sisetup{locale = FR}
 
@@ -42,43 +35,31 @@
 
 \maketitle
 
-% Introductory pages
-\begin{abstract}
-Abstract
-\end{abstract}
-
 \tableofcontents
 
-% Sections
-\section{Wstęp}
-\input{sections/introduction}
+% Chapters
+\chapter{Wstęp}
+\input{chapters/introduction}
 
-\section{Środowisko prototypowania robotów ROS}
-\input{sections/ros}
+\chapter{Środowisko prototypowania robotów ROS}
+\input{chapters/ros}
 
-\section{Filtr Kalmana i system AHRS}
-\input{sections/ahrs}
+\chapter{Filtr Kalmana i system AHRS}
+\input{chapters/ahrs}
 
-\section{Odometria robota}
-\input{sections/odometry}
+\chapter{Odometria robota}
+\input{chapters/odometry}
 
-\section{System wizyjny}
-\input{sections/vision}
+\chapter{System wizyjny}
+\input{chapters/vision}
 
-\section{Analiza biznesowa}
-\input{sections/business}
+\chapter{Analiza biznesowa}
+\input{chapters/business}
 
-\section{Podsumowanie}
-\input{sections/summary}
+\chapter{Podsumowanie}
+\input{chapters/summary}
 
 % Lists of objects
 \listoffigures
-\listoftables
-\listoflistings
-
-% Bibliography
-\nocite{*}
-\bibliographystyle{plplain}
-\bibliography{references}
 
 \end{document}
