@@ -12,14 +12,44 @@ Wybrane algorytmy obejmują tematy predykcji położenia, przetwarzania danych
 wizyjnych, wykrywania elementów otoczenia oraz planowania toru jazdy. Wyniki
 projektu mogą być podstawą do konstrukcji platformy sprzętowej realizującej
 algorytmy. Gotowa platforma może stanowić podstawę do dalszych prac nad
-wykorzystaniem sztucznej inteligencji i~algorytmów sterowania w systemach
+wykorzystaniem sztucznej inteligencji i~algorytmów sterowania w~systemach
 mobilnych.
 
 Dodatkowo, w~ramach projektu, zrealizowano analizę biznesową produkcji robotów
 autonomicznych w~lokalnych warunkach, na podstawie danych o istniejących
-firmach działających w rozpatrywanej dziedzinie.
+firmach działających w~rozpatrywanej dziedzinie.
 
 Środowisko ROS znajduje zastosowania w przemyśle oraz jest narzędziem
-wykorzystywanym
-przy pracach nad dynamicznie rozwijającą się technologią pojazdów
-autonomicznych.
+wykorzystywanym przy pracach nad dynamicznie rozwijającą się technologią
+pojazdów autonomicznych.
+
+\chapter{Organizacja}
+
+
+\section{Podział zadań}
+Podział zadań między studentów przedstawiono w~tabeli \ref{tab:org}.
+Ilość zadań przydzielonych zadań oraz ich charakter odpowiada efektom
+kształcenia realizowanym przez studentów.
+
+\begin{table}[h]
+\begin{tabular}{ll}
+\toprule
+\multicolumn{1}{c}{Wojciech Ptasiński}   & \multicolumn{1}{c}{Maciej Ziaja} \\
+\midrule
+Konfiguracja środkowiska ROS             & Przygotowanie skryptów
+                                           konfiguracyjnych \\
+Przygotowanie modelu robota i symulatora & Implementacja sterowników czujników
+                                           IMU \\
+Opracowanie odometrii robota             & Implementacja filtru Kalmana \\
+Implementacja sterowania robotem         & Opracowanie i implementacja systemu
+                                           AHRS \\
+Analiza biznesowa                        & Opracowanie prototypu systemu
+                                           wizyjnego \\
+                                         & Przygotowanie prototypu sprzętowego
+                                           mikroprocesora \\
+                                         & Analiza biznesowa \\
+\bottomrule
+\end{tabular}
+\caption{Tabela podziału zadań między studentów realizujących projekt}
+\label{tab:org}
+\end{table}
